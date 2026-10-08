@@ -1,0 +1,8 @@
+name: Live Files
+type: module
+description: 'Serves images (and optionally other public files) from the live site instead of the local files directory. Intended for local development only.'
+package: Development
+core_version_requirement: ^10 || ^11
+configure: live_files.settings
+dependencies:
+  - drupal:file

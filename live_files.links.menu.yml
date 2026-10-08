@@ -1,0 +1,5 @@
+live_files.settings:
+  title: 'Live files'
+  description: 'Serve images and files from the live site instead of the local files directory.'
+  route_name: live_files.settings
+  parent: system.admin_config_development

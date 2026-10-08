@@ -1,0 +1,18 @@
+{
+    "name": "4oh3/live-files",
+    "description": "Serves images (and optionally other public files) from the live site instead of the local files directory. Intended for local development only.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "keywords": ["drupal", "development", "files", "images", "stage file proxy"],
+    "homepage": "https://github.com/4oh3/live-files",
+    "support": {
+        "issues": "https://github.com/4oh3/live-files/issues",
+        "source": "https://github.com/4oh3/live-files"
+    },
+    "require": {
+        "drupal/core": "^10 || ^11"
+    },
+    "extra": {
+        "installer-name": "live_files"
+    }
+}

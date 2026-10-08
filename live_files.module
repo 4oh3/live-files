@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Serves files from the live site instead of the local files directory.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function live_files_help($route_name, RouteMatchInterface $route_match) {
+  if ($route_name === 'help.page.live_files') {
+    return '<p>' . t('Points image URLs (and optionally all public file URLs) at the live site, so a local copy of the site can display images without downloading the files directory. Intended for local development only.') . '</p>';
+  }
+}
+
+/**
+ * Implements hook_file_url_alter().
+ */
+function live_files_file_url_alter(&$uri) {
+  if ($live_url = \Drupal::service('live_files.resolver')->getLiveUrl($uri)) {
+    $uri = $live_url;
+  }
+}

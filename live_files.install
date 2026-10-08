@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Live Files module.
+ */
+
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_install().
+ */
+function live_files_install() {
+  Cache::invalidateTags(['rendered']);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function live_files_uninstall() {
+  Cache::invalidateTags(['rendered']);
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function live_files_requirements($phase) {
+  $requirements = [];
+  if ($phase === 'runtime') {
+    $base_url = \Drupal::config('live_files.settings')->get('base_url');
+    $requirements['live_files'] = [
+      'title' => t('Live files'),
+      'value' => $base_url ?: t('Not configured'),
+      'description' => $base_url
+        ? t('Files are being served from the live site. This module is meant for local development and should not be enabled on production.')
+        : t('Enter the live site URL on the <a href=":url">settings page</a>.', [':url' => Url::fromRoute('live_files.settings')->toString()]),
+      'severity' => REQUIREMENT_WARNING,
+    ];
+  }
+  return $requirements;
+}

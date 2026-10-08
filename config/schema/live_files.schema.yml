@@ -1,0 +1,13 @@
+live_files.settings:
+  type: config_object
+  label: 'Live files settings'
+  mapping:
+    base_url:
+      type: uri
+      label: 'Live site URL'
+    mode:
+      type: string
+      label: 'Which files to serve from the live site (all or missing)'
+    all_files:
+      type: boolean
+      label: 'Serve non-image files from the live site'

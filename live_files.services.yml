@@ -1,0 +1,10 @@
+services:
+  live_files.resolver:
+    class: Drupal\live_files\LiveFileUrlResolver
+    arguments: ['@config.factory', '@stream_wrapper_manager', '@request_stack']
+
+  live_files.missing_file_subscriber:
+    class: Drupal\live_files\EventSubscriber\MissingFileSubscriber
+    arguments: ['@live_files.resolver', '@config.factory']
+    tags:
+      - { name: event_subscriber }
