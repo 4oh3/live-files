@@ -11,13 +11,13 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Redirects requests for missing local files to the live site.
- *
- * Most file URLs are rewritten before they reach the browser, but paths that
- * are hard-coded (images in formatted text, CSS backgrounds) still point at
- * the local site. The web server only hands a file request to Drupal when the
- * file does not exist on disk.
  */
 class MissingFileSubscriber implements EventSubscriberInterface {
+
+  /**
+   * Query parameter added to redirects so a request is only redirected once.
+   */
+  const REDIRECT_MARKER = 'live_files';
 
   public function __construct(
     protected LiveFileUrlResolver $resolver,
@@ -42,14 +42,17 @@ class MissingFileSubscriber implements EventSubscriberInterface {
     }
 
     $request = $event->getRequest();
+    if ($request->query->has(self::REDIRECT_MARKER)) {
+      return;
+    }
+
     $uri = $this->resolver->pathToUri($request->getPathInfo());
     if (!$uri || !$live_url = $this->resolver->getLiveUrl($uri)) {
       return;
     }
 
-    if ($query = $request->getQueryString()) {
-      $live_url .= '?' . $query;
-    }
+    $query = $request->getQueryString();
+    $live_url .= '?' . ($query ? $query . '&' : '') . self::REDIRECT_MARKER . '=1';
     $response = new TrustedRedirectResponse($live_url);
     $response->addCacheableDependency($this->configFactory->get('live_files.settings'));
     $event->setResponse($response);

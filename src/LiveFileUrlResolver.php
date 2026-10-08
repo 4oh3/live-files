@@ -64,7 +64,6 @@ class LiveFileUrlResolver {
     if ($base_url === '' || StreamWrapperManager::getScheme($uri) !== 'public') {
       return NULL;
     }
-    // Pointing at the current host would redirect missing files to themselves.
     $host = $this->requestStack->getCurrentRequest()?->getHost();
     if ($host && strcasecmp((string) parse_url($base_url, PHP_URL_HOST), $host) === 0) {
       return NULL;
