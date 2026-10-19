@@ -28,10 +28,15 @@ function live_files_uninstall() {
 function live_files_requirements($phase) {
   $requirements = [];
   if ($phase === 'runtime') {
-    $base_url = \Drupal::config('live_files.settings')->get('base_url');
+    $config = \Drupal::config('live_files.settings');
+    $base_url = $config->get('base_url');
+    $value = $base_url ?: t('Not configured');
+    if ($base_url && ($config->get('auth_username') ?? '') !== '') {
+      $value = t('@url (HTTP authentication)', ['@url' => $base_url]);
+    }
     $requirements['live_files'] = [
       'title' => t('Live files'),
-      'value' => $base_url ?: t('Not configured'),
+      'value' => $value,
       'description' => $base_url
         ? t('Files are being served from the live site. This module is meant for local development and should not be enabled on production.')
         : t('Enter the live site URL on the <a href=":url">settings page</a>.', [':url' => Url::fromRoute('live_files.settings')->toString()]),
@@ -39,4 +44,15 @@ function live_files_requirements($phase) {
     ];
   }
   return $requirements;
+}
+
+/**
+ * Add HTTP basic authentication settings.
+ */
+function live_files_update_10001() {
+  $config = \Drupal::configFactory()->getEditable('live_files.settings');
+  $config
+    ->set('auth_username', (string) ($config->get('auth_username') ?? ''))
+    ->set('auth_password', (string) ($config->get('auth_password') ?? ''))
+    ->save();
 }

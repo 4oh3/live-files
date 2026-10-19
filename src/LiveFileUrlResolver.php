@@ -70,7 +70,7 @@ class LiveFileUrlResolver {
     }
 
     $target = strtok((string) StreamWrapperManager::getTarget($uri), '?');
-    if ($target === '' || $target === FALSE) {
+    if ($target === '' || $target === FALSE || !$this->isSafeTarget($target)) {
       return NULL;
     }
     foreach (self::EXCLUDED_DIRECTORIES as $directory) {
@@ -87,6 +87,36 @@ class LiveFileUrlResolver {
     }
 
     return $base_url . '/' . $this->getFilesPath() . '/' . UrlHelper::encodePath($target);
+  }
+
+  /**
+   * Whether live files are fetched with HTTP basic authentication.
+   */
+  public function hasBasicAuth(): bool {
+    return trim((string) ($this->config()->get('auth_username') ?? '')) !== '';
+  }
+
+  /**
+   * Gets the local URL that proxies a file from the live site.
+   *
+   * Used when the live site requires HTTP basic authentication. The browser
+   * requests this URL, and this site fetches the file with the saved
+   * credentials.
+   */
+  public function getProxyUrl(string $uri): ?string {
+    if (!$this->hasBasicAuth() || !$this->getLiveUrl($uri)) {
+      return NULL;
+    }
+    $request = $this->requestStack->getCurrentRequest();
+    if (!$request) {
+      return NULL;
+    }
+    $target = strtok((string) StreamWrapperManager::getTarget($uri), '?');
+    if ($target === '' || $target === FALSE) {
+      return NULL;
+    }
+    $path = $this->getFilesPath() . '/' . UrlHelper::encodePath($target);
+    return $request->getSchemeAndHttpHost() . $request->getBasePath() . '/live-files/' . $path;
   }
 
   /**
@@ -114,6 +144,16 @@ class LiveFileUrlResolver {
       $source = $converted[1];
     }
     return $source;
+  }
+
+  /**
+   * Rejects paths that could leave the public files directory.
+   */
+  protected function isSafeTarget(string $target): bool {
+    if (str_contains($target, "\0")) {
+      return FALSE;
+    }
+    return !preg_match('#(^|[\\\\/])\.\.([\\\\/]|$)#', $target);
   }
 
   /**

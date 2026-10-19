@@ -5,3 +5,14 @@ live_files.settings:
     _title: 'Live files'
   requirements:
     _permission: 'administer site configuration'
+
+live_files.proxy:
+  path: '/live-files'
+  defaults:
+    _controller: 'live_files.file_proxy_controller:deliver'
+    _disable_route_normalizer: true
+  methods: [GET, HEAD]
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE

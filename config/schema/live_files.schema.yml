@@ -11,3 +11,9 @@ live_files.settings:
     all_files:
       type: boolean
       label: 'Serve non-image files from the live site'
+    auth_username:
+      type: string
+      label: 'HTTP basic authentication username'
+    auth_password:
+      type: string
+      label: 'HTTP basic authentication password'

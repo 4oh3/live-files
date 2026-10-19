@@ -4,13 +4,14 @@ namespace Drupal\live_files\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\live_files\LiveFileProxy;
 use Drupal\live_files\LiveFileUrlResolver;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Redirects requests for missing local files to the live site.
+ * Sends requests for missing local files to the live site.
  */
 class MissingFileSubscriber implements EventSubscriberInterface {
 
@@ -22,6 +23,7 @@ class MissingFileSubscriber implements EventSubscriberInterface {
   public function __construct(
     protected LiveFileUrlResolver $resolver,
     protected ConfigFactoryInterface $configFactory,
+    protected LiveFileProxy $proxy,
   ) {}
 
   /**
@@ -34,7 +36,7 @@ class MissingFileSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Responds with a redirect to the live copy of a missing file.
+   * Redirects to the live file, or fetches it when authentication is configured.
    */
   public function onRequest(RequestEvent $event): void {
     if (!$event->isMainRequest()) {
@@ -42,12 +44,22 @@ class MissingFileSubscriber implements EventSubscriberInterface {
     }
 
     $request = $event->getRequest();
-    if ($request->query->has(self::REDIRECT_MARKER)) {
+    $authenticated = $this->resolver->hasBasicAuth();
+    if (!$authenticated && $request->query->has(self::REDIRECT_MARKER)) {
       return;
     }
 
     $uri = $this->resolver->pathToUri($request->getPathInfo());
     if (!$uri || !$live_url = $this->resolver->getLiveUrl($uri)) {
+      return;
+    }
+
+    if ($authenticated) {
+      if (!in_array($request->getMethod(), ['GET', 'HEAD'], TRUE)) {
+        return;
+      }
+      $event->setResponse($this->proxy->fetch($uri, $request));
+      $event->stopPropagation();
       return;
     }
 

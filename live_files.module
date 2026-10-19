@@ -12,7 +12,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
  */
 function live_files_help($route_name, RouteMatchInterface $route_match) {
   if ($route_name === 'help.page.live_files') {
-    return '<p>' . t('Points image URLs (and optionally all public file URLs) at the live site, so a local copy of the site can display images without downloading the files directory. Intended for local development only.') . '</p>';
+    return '<p>' . t('Points image URLs (and optionally all public file URLs) at the live site, so a local copy of the site can display images without downloading the files directory. If the live site uses HTTP basic authentication, this site fetches the files and sends the username and password. Intended for local development only.') . '</p>';
   }
 }
 
@@ -20,7 +20,16 @@ function live_files_help($route_name, RouteMatchInterface $route_match) {
  * Implements hook_file_url_alter().
  */
 function live_files_file_url_alter(&$uri) {
-  if ($live_url = \Drupal::service('live_files.resolver')->getLiveUrl($uri)) {
-    $uri = $live_url;
+  /** @var \Drupal\live_files\LiveFileUrlResolver $resolver */
+  $resolver = \Drupal::service('live_files.resolver');
+  if (!$resolver->getLiveUrl($uri)) {
+    return;
   }
+  if ($resolver->hasBasicAuth()) {
+    if ($proxy_url = $resolver->getProxyUrl($uri)) {
+      $uri = $proxy_url;
+    }
+    return;
+  }
+  $uri = $resolver->getLiveUrl($uri);
 }

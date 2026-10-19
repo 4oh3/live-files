@@ -3,8 +3,25 @@ services:
     class: Drupal\live_files\LiveFileUrlResolver
     arguments: ['@config.factory', '@stream_wrapper_manager', '@request_stack']
 
+  logger.channel.live_files:
+    parent: logger.channel_base
+    arguments: ['live_files']
+
+  live_files.proxy:
+    class: Drupal\live_files\LiveFileProxy
+    arguments: ['@live_files.resolver', '@http_client', '@logger.channel.live_files']
+
+  live_files.file_proxy_controller:
+    class: Drupal\live_files\Controller\FileProxyController
+    arguments: ['@live_files.resolver', '@live_files.proxy']
+
   live_files.missing_file_subscriber:
     class: Drupal\live_files\EventSubscriber\MissingFileSubscriber
-    arguments: ['@live_files.resolver', '@config.factory']
+    arguments: ['@live_files.resolver', '@config.factory', '@live_files.proxy']
     tags:
       - { name: event_subscriber }
+
+  live_files.path_processor:
+    class: Drupal\live_files\PathProcessor\LiveFilesPathProcessor
+    tags:
+      - { name: path_processor_inbound, priority: 200 }
