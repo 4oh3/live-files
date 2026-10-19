@@ -7,6 +7,8 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -78,6 +80,13 @@ class LiveFileProxy {
     }
 
     $status = $upstream->getStatusCode();
+    if ($status === 404) {
+      $fallback = $this->localFallback($uri, $request);
+      if ($fallback !== NULL) {
+        $upstream->getBody()->close();
+        return $fallback;
+      }
+    }
     if ($status === 401 || $status === 403) {
       $this->logger->warning('The live site refused access to @url. Check the HTTP authentication username and password.', ['@url' => $url]);
     }
@@ -109,6 +118,36 @@ class LiveFileProxy {
       }
       $body->close();
     }, $status, $response_headers);
+  }
+
+  /**
+   * Serves a file from this site when the live site does not have it.
+   *
+   * Uploads exist only locally. Image styles for those files are generated
+   * here; the redirect skips this proxy for that one request.
+   */
+  protected function localFallback(string $uri, Request $request): ?Response {
+    $path = $this->resolver->localRealPath($uri);
+    if ($path !== NULL) {
+      $response = new BinaryFileResponse($path);
+      $response->headers->set('Cache-Control', 'private, max-age=3600');
+      return $response;
+    }
+
+    $source = $this->resolver->getSourceUri($uri);
+    if ($source === $uri || $this->resolver->localRealPath($source) === NULL) {
+      return NULL;
+    }
+    $url = $this->resolver->getLocalUrl($uri);
+    if ($url === NULL) {
+      return NULL;
+    }
+    $query = $request->query->all();
+    unset($query['file']);
+    $query[LiveFileUrlResolver::REDIRECT_MARKER] = '1';
+    $response = new RedirectResponse($url . '?' . UrlHelper::buildQuery($query));
+    $response->headers->set('Cache-Control', 'private, no-store');
+    return $response;
   }
 
   /**

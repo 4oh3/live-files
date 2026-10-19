@@ -36,6 +36,14 @@ class LiveFileUrlResolver {
    */
   const EXCLUDED_DIRECTORIES = ['css/', 'js/', 'php/'];
 
+  /**
+   * Query parameter that skips the live-site fetch for one request.
+   *
+   * Added when an image style has to be generated locally after the live site
+   * does not have that derivative.
+   */
+  const REDIRECT_MARKER = 'live_files';
+
   public function __construct(
     protected ConfigFactoryInterface $configFactory,
     protected StreamWrapperManagerInterface $streamWrapperManager,
@@ -117,6 +125,29 @@ class LiveFileUrlResolver {
     }
     $path = $this->getFilesPath() . '/' . UrlHelper::encodePath($target);
     return $request->getSchemeAndHttpHost() . $request->getBasePath() . '/live-files/' . $path;
+  }
+
+  /**
+   * Gets the on-disk path for a public URI that exists locally.
+   */
+  public function localRealPath(string $uri): ?string {
+    if (!$this->streamWrapperManager->isValidUri($uri)) {
+      return NULL;
+    }
+    $path = $this->streamWrapperManager->getViaUri($uri)?->realpath();
+    return is_string($path) && is_file($path) ? $path : NULL;
+  }
+
+  /**
+   * Gets the normal local URL for a public file, without the live-file proxy.
+   */
+  public function getLocalUrl(string $uri): ?string {
+    $request = $this->requestStack->getCurrentRequest();
+    $target = strtok((string) StreamWrapperManager::getTarget($uri), '?');
+    if (!$request || $target === '' || $target === FALSE) {
+      return NULL;
+    }
+    return $request->getSchemeAndHttpHost() . $request->getBasePath() . '/' . $this->getFilesPath() . '/' . UrlHelper::encodePath($target);
   }
 
   /**
